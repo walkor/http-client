@@ -18,7 +18,7 @@ require __DIR__ . '/vendor/autoload.php';
 use Workerman\Worker;
 $worker = new Worker();
 $worker->onWorkerStart = function(){
-    $http = new Workerman\http\Client();
+    $http = new Workerman\Http\Client();
     
     $http->get('http://example.com/', function($response){
             var_dump($response->getStatusCode());
