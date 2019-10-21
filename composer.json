@@ -4,7 +4,7 @@
     "homepage": "http://www.workerman.net",
     "license" : "MIT",
     "require": {
-        "workerman/psr7": ">=1.4",
+        "workerman/psr7": ">=1.4.3",
         "workerman/workerman": "3.*"
     },
     "autoload": {
