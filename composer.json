@@ -1,0 +1,6 @@
+{
+    "require": {
+        "workerman/psr7": "dev-master",
+        "workerman/workerman": "3.*"
+    }
+}
