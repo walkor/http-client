@@ -8,7 +8,7 @@ Asynchronous http client for PHP based on workerman.
 -  Build-in connection pool.
 
 # Installation
-composer require workerman/http-client
+`composer require workerman/http-client`
 
 # Examples
 **example.php**
