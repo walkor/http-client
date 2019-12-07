@@ -196,8 +196,6 @@ class Request extends \Workerman\Psr7\Request
 
         if (is_array($data)) {
             $data = http_build_query($data, '', '&');
-        } else {
-            $data = urlencode($data);
         }
 
         $this->getBody()->write($data);
