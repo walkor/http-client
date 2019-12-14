@@ -20,7 +20,7 @@ namespace Workerman\Http;
  */
 class Client
 {
-    const VERSION = '0.1.2';
+    const VERSION = '0.1.3';
 
     /**
      *
