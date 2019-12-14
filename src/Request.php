@@ -209,7 +209,14 @@ class Request extends \Workerman\Psr7\Request
     public function end($data = '')
     {
         if (($data || $data === '0' || $data === 0) || $this->getBody()->getSize()) {
-            $this->withHeader('Content-Type', 'application/x-www-form-urlencoded');
+            if (isset($this->_options['headers'])) {
+                $headers = array_change_key_case($this->_options['headers']);
+                if (!isset($headers['content-type'])) {
+                    $this->withHeader('Content-Type', 'application/x-www-form-urlencoded');
+                }
+            } else {
+                $this->withHeader('Content-Type', 'application/x-www-form-urlencoded');
+            }
         }
         if (isset($this->_options['version'])) {
             $this->withProtocolVersion($this->_options['version']);
@@ -223,7 +230,7 @@ class Request extends \Workerman\Psr7\Request
             $this->withHeaders($this->_options['headers']);
         }
 
-        $query = isset($this->_options['query']) ? (string)$this->_options['query'] : '';
+        $query = isset($this->_options['query']) ? $this->_options['query'] : '';
         if ($query || $query === '0') {
             if (is_array($query)) {
                 $query = http_build_query($query, null, '&', PHP_QUERY_RFC3986);
