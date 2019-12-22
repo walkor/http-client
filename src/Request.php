@@ -435,15 +435,13 @@ class Request extends \Workerman\Psr7\Request
      */
     public function emitSuccess()
     {
-        $this->detachConnection();
         $this->emit('success', $this->_response);
     }
 
     public function emitError($e)
     {
-        $this->cleanConnection();
-        $this->emit('error', $e);
         $this->_connection->destroy();
+        $this->emit('error', $e);
     }
 
     /**
@@ -549,5 +547,7 @@ class Request extends \Workerman\Psr7\Request
         $connection = $this->_connection;
         $connection->onConnect = $connection->onMessage = $connection->onError =
         $connection->onClose = $connection->onBufferFull = $connection->onBufferDrain = null;
+        $this->_connection = null;
+        $this->_emitter->removeAllListeners();
     }
 }
