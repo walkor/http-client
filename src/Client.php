@@ -20,7 +20,7 @@ namespace Workerman\Http;
  */
 class Client
 {
-    const VERSION = '0.1.3';
+    const VERSION = '0.1.4';
 
     /**
      *
@@ -222,6 +222,9 @@ class Client
     public function recycleConnectionFromRequest($request, $response = null)
     {
         $connection = $request->getConnection();
+        if (!$connection) {
+            return;
+        }
         $connection->onConnect = $connection->onClose = $connection->onMessage = $connection->onError = null;
         $request_header_connection = strtolower($request->getHeaderLine('Connection'));
         $response_header_connection = $response ? strtolower($response->getHeaderLine('Connection')) : '';
@@ -229,6 +232,7 @@ class Client
         if ('keep-alive' !== $request_header_connection || 'keep-alive' !== $response_header_connection || $request->getProtocolVersion() !== '1.1') {
             $connection->close();
         }
+        $request->detachConnection($connection);
         $this->_connectionPool->recycle($connection);
     }
 
