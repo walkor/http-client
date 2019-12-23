@@ -183,6 +183,7 @@ class ConnectionPool extends Emitter
                 }
             }
         }
+        gc_collect_cycles();
     }
 
     /**
