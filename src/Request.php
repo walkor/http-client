@@ -327,7 +327,7 @@ class Request extends \Workerman\Psr7\Request
     protected function checkComplete($body)
     {
         $status_code = $this->_response->getStatusCode();
-        if ($status_code === 100 || $status_code === 204 || $status_code === 304) {
+        if (($status_code >= 100 && $status_code < 200) || $status_code === 204 || $status_code === 304) {
             $this->emitSuccess();
             return;
         }
