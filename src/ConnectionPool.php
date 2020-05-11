@@ -40,7 +40,7 @@ class ConnectionPool extends Emitter
     /**
      * @var array
      */
-    protected $_option = [
+    protected $_options = [
         'max_conn_per_addr' => 128,
         'keepalive_timeout' => 15,
         'connect_timeout'   => 30,
@@ -54,7 +54,7 @@ class ConnectionPool extends Emitter
      */
     public function __construct($option = [])
     {
-        $this->_option = array_merge($this->_option, $option);
+        $this->_options = array_merge($this->_options, $option);
     }
 
     /**
@@ -66,7 +66,7 @@ class ConnectionPool extends Emitter
      */
     public function fetch($address, $ssl = false)
     {
-        $max_con = $this->_option['max_conn_per_addr'];
+        $max_con = $this->_options['max_conn_per_addr'];
         if (!empty($this->_using[$address])) {
             if (count($this->_using[$address]) >= $max_con) {
                 return;
@@ -139,7 +139,7 @@ class ConnectionPool extends Emitter
             return;
         }
         $time = time();
-        $keepalive_timeout = $this->_option['keepalive_timeout'];
+        $keepalive_timeout = $this->_options['keepalive_timeout'];
         foreach ($this->_idle as $address => $connections) {
             if (empty($connections)) {
                 unset($this->_idle[$address]);
@@ -153,8 +153,8 @@ class ConnectionPool extends Emitter
             }
         }
 
-        $connect_timeout = $this->_option['connect_timeout'];
-        $timeout = $this->_option['timeout'];
+        $connect_timeout = $this->_options['connect_timeout'];
+        $timeout = $this->_options['timeout'];
         foreach ($this->_using as $address => $connections) {
             if (empty($connections)) {
                 unset($this->_using[$address]);
@@ -195,7 +195,14 @@ class ConnectionPool extends Emitter
      */
     protected function create($address, $ssl = false)
     {
-        $connection = new AsyncTcpConnection($address);
+        $context = array();
+        if (!empty( $this->_options['context'])) {
+            $context = $this->_options['context'];
+        }
+        if (!$ssl) {
+            unset($context['ssl']);
+        }
+        $connection = new AsyncTcpConnection($address, $context);
         if ($ssl) {
             $connection->transport = 'ssl';
         }
