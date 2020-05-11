@@ -170,8 +170,16 @@ class Request extends \Workerman\Psr7\Request
         if (!$port) {
             $port = $this->getDefaultPort();
         }
-        $connection = new AsyncTcpConnection("tcp://$host:$port");
-        if ($this->getUri()->getScheme() === 'https') {
+        $context = array();
+        if (!empty( $this->_options['context'])) {
+            $context = $this->_options['context'];
+        }
+        $ssl = $this->getUri()->getScheme() === 'https';
+        if (!$ssl) {
+            unset($context['ssl']);
+        }
+        $connection = new AsyncTcpConnection("tcp://$host:$port", $context);
+        if ($ssl) {
             $connection->transport = 'ssl';
         }
         $this->attachConnection($connection);
@@ -328,7 +336,8 @@ class Request extends \Workerman\Psr7\Request
     {
         $status_code = $this->_response->getStatusCode();
         $content_length = $this->_response->getHeaderLine('Content-Length');
-        if ($content_length === '0' || ($status_code >= 100 && $status_code < 200) || $status_code === 204 || $status_code === 304) {
+        if ($content_length === '0' || ($status_code >= 100 && $status_code < 200)
+            || $status_code === 204 || $status_code === 304) {
             $this->emitSuccess();
             return;
         }
