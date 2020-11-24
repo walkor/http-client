@@ -154,7 +154,7 @@ class Client
         $request = new Request($url);
         $data = isset($options['data']) ? $options['data'] : '';
         if ($data || $data === '0' || $data === 0) {
-            if (isset($options['method']) && strtoupper($options['method']) === 'POST') {
+            if (isset($options['method']) && (strtoupper($options['method']) === 'POST' || strtoupper($options['method']) === 'PUT' || strtoupper($options['method']) === 'PATCH')) {
                 $request->write($options['data']);
             } else {
                 $options['query'] = $data;
