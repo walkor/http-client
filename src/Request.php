@@ -450,7 +450,7 @@ class Request extends \Workerman\Psr7\Request
 
     public function emitError($e)
     {
-        $this->_connection->destroy();
+        $this->_connection && $this->_connection->destroy();
         $this->emit('error', $e);
     }
 
