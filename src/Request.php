@@ -14,7 +14,7 @@
 namespace Workerman\Http;
 
 use \Workerman\Connection\AsyncTcpConnection;
-use \Workerman\Lib\Timer;
+use \Workerman\Timer;
 use Workerman\Psr7\Uri;
 
 /**
