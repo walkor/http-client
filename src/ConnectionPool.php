@@ -195,7 +195,13 @@ class ConnectionPool extends Emitter
      */
     protected function create($address, $ssl = false)
     {
-        $context = array();
+        $context = array(
+            'ssl' => array(
+                'verify_peer' => false,
+                'verify_peer_name'  => false,
+                'allow_self_signed' => true
+            )
+        );
         if (!empty( $this->_options['context'])) {
             $context = $this->_options['context'];
         }
