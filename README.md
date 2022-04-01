@@ -52,6 +52,30 @@ Worker::runAll();
 
 Run with commands `php example.php start` or `php example.php start -d`
 
+# Optinons
+```php
+<?php
+require __DIR__ . '/vendor/autoload.php';
+use Workerman\Worker;
+$worker = new Worker();
+$worker->onWorkerStart = function(){
+    $options = [
+        'max_conn_per_addr' => 128,
+        'keepalive_timeout' => 15,
+        'connect_timeout'   => 30,
+        'timeout'           => 30,
+    ];
+    $http = new Workerman\Http\Client($options);
+
+    $http->get('http://example.com/', function($response){
+        var_dump($response->getStatusCode());
+        echo $response->getBody();
+    }, function($exception){
+        echo $exception;
+    });
+};
+Worker::runAll();
+
 # License
 
 MIT
