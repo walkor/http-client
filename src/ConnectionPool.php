@@ -15,6 +15,7 @@ namespace Workerman\Http;
 
 use \Workerman\Connection\AsyncTcpConnection;
 use \Workerman\Timer;
+use \Workerman\Worker;
 
 /**
  * Class ConnectionPool
@@ -207,6 +208,9 @@ class ConnectionPool extends Emitter
         }
         if (!$ssl) {
             unset($context['ssl']);
+        }
+        if (!class_exists(Worker::class) || is_null(Worker::$globalEvent)) {
+            throw new \Exception('Only the workerman environment is supported.');
         }
         $connection = new AsyncTcpConnection($address, $context);
         if ($ssl) {
