@@ -241,7 +241,7 @@ class Request extends \Workerman\Psr7\Request
         $query = isset($this->_options['query']) ? $this->_options['query'] : '';
         if ($query || $query === '0') {
             if (is_array($query)) {
-                $query = http_build_query($query, null, '&', PHP_QUERY_RFC3986);
+                $query = http_build_query($query, '', '&', PHP_QUERY_RFC3986);
             }
             $uri = $this->getUri()->withQuery($query);
             $this->withUri($uri);
