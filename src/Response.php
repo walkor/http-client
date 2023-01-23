@@ -17,6 +17,7 @@ namespace Workerman\Http;
  * Class Response
  * @package Workerman\Http
  */
+#[\AllowDynamicProperties]
 class Response extends \Workerman\Psr7\Response
 {
 

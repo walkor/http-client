@@ -21,6 +21,7 @@ use Workerman\Psr7\Uri;
  * Class Request
  * @package Workerman\Http
  */
+#[\AllowDynamicProperties]
 class Request extends \Workerman\Psr7\Request
 {
     /**

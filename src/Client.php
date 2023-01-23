@@ -20,6 +20,7 @@ use Revolt\EventLoop;
  * Class Http\Client
  * @package Workerman\Http
  */
+#[\AllowDynamicProperties]
 class Client
 {
     /**
@@ -65,7 +66,7 @@ class Client
     {
         $address = $this->parseAddress($url, $options);
         $options['url'] = $url;
-        $needSuspend = !isset($options['success']);
+        $needSuspend = !isset($options['success']) && class_exists(EventLoop::class, false);
         if ($needSuspend) {
             $suspension = EventLoop::getSuspension();
             $options['success'] = function ($response) use ($suspension) {
