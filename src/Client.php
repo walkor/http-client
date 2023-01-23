@@ -14,14 +14,14 @@
 namespace Workerman\Http;
 
 
+use Revolt\EventLoop;
+
 /**
  * Class Http\Client
  * @package Workerman\Http
  */
 class Client
 {
-    const VERSION = '0.1.6';
-
     /**
      *
      *[
@@ -59,14 +59,24 @@ class Client
      *
      * @param $url string
      * @param array $options ['method'=>'get', 'data'=>x, 'success'=>callback, 'error'=>callback, 'headers'=>[..], 'version'=>1.1]
-     * @return void
+     * @return mixed
      */
     public function request($url, $options = [])
     {
         $address = $this->parseAddress($url, $options);
         $options['url'] = $url;
+        $needSuspend = !isset($options['success']);
+        if ($needSuspend) {
+            $suspension = EventLoop::getSuspension();
+            $options['success'] = function ($response) use ($suspension) {
+                $suspension->resume($response);
+            };
+        }
         $this->queuePush($address, ['url' => $url, 'address' => $address, 'options' => $options]);
         $this->process($address);
+        if ($needSuspend) {
+            return $suspension->suspend();
+        }
     }
 
     /**
@@ -75,6 +85,7 @@ class Client
      * @param $url
      * @param null $success_callback
      * @param null $error_callback
+     * @return mixed
      */
     public function get($url, $success_callback = null, $error_callback = null)
     {
@@ -85,14 +96,7 @@ class Client
         if ($error_callback) {
             $options['error'] = $error_callback;
         }
-        $address = $this->parseAddress($url, $options);
-        $task = [
-            'url'      => $url,
-            'options'  => $options,
-            'address'  => $address,
-        ];
-        $this->queuePush($address, $task);
-        $this->process($address);
+        return $this->request($url, $options);
     }
 
     /**
@@ -102,7 +106,7 @@ class Client
      * @param $data
      * @param null $success_callback
      * @param null $error_callback
-     * @return bool
+     * @return mixed
      */
     public function post($url, $data = [], $success_callback = null, $error_callback = null)
     {
@@ -117,14 +121,7 @@ class Client
             $options['error'] = $error_callback;
         }
         $options['method'] = 'POST';
-        $address = $this->parseAddress($url, $options);
-        $task = [
-            'url'      => $url,
-            'options'  => $options,
-            'address'  => $address
-        ];
-        $this->queuePush($address, $task);
-        $this->process($address);
+        return $this->request($url, $options);
     }
 
     /**
@@ -154,7 +151,8 @@ class Client
         $request = new Request($url);
         $data = isset($options['data']) ? $options['data'] : '';
         if ($data || $data === '0' || $data === 0) {
-            if (isset($options['method']) && (strtoupper($options['method']) === 'POST' || strtoupper($options['method']) === 'PUT' || strtoupper($options['method']) === 'PATCH' || strtoupper($options['method']) === 'DELETE')) {
+            $method = isset($options['method']) ? strtoupper($options['method']) : null;
+            if ($method && in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'])) {
                 $request->write($options['data']);
             } else {
                 $options['query'] = $data;
@@ -170,6 +168,8 @@ class Client
             } catch (\Exception $exception) {
                 if (!empty($task['options']['error'])) {
                     call_user_func($task['options']['error'], $exception);
+                } else {
+                    throw $exception;
                 }
                 return;
             }
@@ -197,6 +197,8 @@ class Client
             $client->recycleConnectionFromRequest($request);
             if (!empty($task['options']['error'])) {
                 call_user_func($task['options']['error'], $exception);
+            } else {
+                throw $exception;
             }
         });
 

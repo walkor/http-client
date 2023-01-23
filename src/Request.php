@@ -437,7 +437,7 @@ class Request extends \Workerman\Psr7\Request
      */
     public function onError($connection, $code, $msg)
     {
-        $this->emitError(new \Exception("connection error code:$code $msg"));
+        $this->emitError(new \Exception($msg, $code));
     }
 
     /**
@@ -450,8 +450,11 @@ class Request extends \Workerman\Psr7\Request
 
     public function emitError($e)
     {
-        $this->_connection && $this->_connection->destroy();
-        $this->emit('error', $e);
+        try {
+            $this->emit('error', $e);
+        } finally {
+            $this->_connection && $this->_connection->destroy();
+        }
     }
 
     /**

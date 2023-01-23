@@ -166,8 +166,15 @@ class ConnectionPool extends Emitter
                 if ($state === 'CONNECTING') {
                     $diff = $time - $connection->pool['connect_time'];
                     if ($diff >= $connect_timeout) {
+                        $connection->onClose = null;
                         if ($connection->onError) {
-                            call_user_func($connection->onError, $connection, WORKERMAN_CONNECT_FAIL, 'connect ' . $connection->getRemoteAddress() . ' timeout after ' . $diff . ' seconds');
+                            try {
+                                call_user_func($connection->onError, $connection, 1, 'connect ' . $connection->getRemoteAddress() . ' timeout after ' . $diff . ' seconds');
+                            } catch (\Throwable $exception) {
+                                $this->delete($connection);
+                                $connection->close();
+                                throw $exception;
+                            }
                         }
                         $this->delete($connection);
                         $connection->close();
@@ -176,7 +183,13 @@ class ConnectionPool extends Emitter
                     $diff = $time - $connection->pool['request_time'];
                     if ($diff >= $timeout) {
                         if ($connection->onError) {
-                            call_user_func($connection->onError, $connection, 128, 'read ' . $connection->getRemoteAddress() . ' timeout after ' . $diff . ' seconds');
+                            try {
+                                call_user_func($connection->onError, $connection, 128, 'read ' . $connection->getRemoteAddress() . ' timeout after ' . $diff . ' seconds');
+                            } catch (\Throwable $exception) {
+                                $this->delete($connection);
+                                $connection->close();
+                                throw $exception;
+                            }
                         }
                         $this->delete($connection);
                         $connection->close();
