@@ -60,7 +60,7 @@ class Client
      *
      * @param $url string
      * @param array $options ['method'=>'get', 'data'=>x, 'success'=>callback, 'error'=>callback, 'headers'=>[..], 'version'=>1.1]
-     * @return mixed
+     * @return mixed|Response
      */
     public function request($url, $options = [])
     {
@@ -86,7 +86,7 @@ class Client
      * @param $url
      * @param null $success_callback
      * @param null $error_callback
-     * @return mixed
+     * @return mixed|Response
      */
     public function get($url, $success_callback = null, $error_callback = null)
     {
@@ -107,7 +107,7 @@ class Client
      * @param $data
      * @param null $success_callback
      * @param null $error_callback
-     * @return mixed
+     * @return mixed|Response
      */
     public function post($url, $data = [], $success_callback = null, $error_callback = null)
     {
