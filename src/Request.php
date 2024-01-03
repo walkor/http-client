@@ -117,6 +117,17 @@ class Request extends \Workerman\Psr7\Request
      */
     public function on($event, $callback)
     {
+        $this->_emitter->on($event, $callback);
+        return $this;
+    }
+
+    /**
+     * @param $event
+     * @param $callback
+     * @return $this
+     */
+    public function once($event, $callback)
+    {
         $this->_emitter->once($event, $callback);
         return $this;
     }
@@ -209,6 +220,15 @@ class Request extends \Workerman\Psr7\Request
 
         $this->getBody()->write($data);
         return $this;
+    }
+
+    /**
+     * @return void
+     */
+    public function writeToResponse($buffer)
+    {
+        $this->emit('progress', $buffer);
+        $this->_response->getBody()->write($buffer);
     }
 
     /**
@@ -369,7 +389,7 @@ class Request extends \Workerman\Psr7\Request
     {
         try {
             $body = $this->_response->getBody();
-            $body->write($data);
+            $this->writeToResponse($data);
             if ($this->_expectedLength) {
                 $recv_length = $body->getSize();
                 if ($this->_expectedLength <= $recv_length) {
@@ -388,7 +408,7 @@ class Request extends \Workerman\Psr7\Request
     public function handleChunkedData($connection, $buffer)
     {
         try {
-            if ($buffer) {
+            if ($buffer !== '') {
                 $this->_chunkedData .= $buffer;
             }
 
@@ -423,7 +443,7 @@ class Request extends \Workerman\Psr7\Request
             }
             // Get chunked data
             if ($recv_len >= $this->_chunkedLength) {
-                $this->_response->getBody()->write(substr($this->_chunkedData, 0, $this->_chunkedLength - 2));
+                $this->writeToResponse(substr($this->_chunkedData, 0, $this->_chunkedLength - 2));
                 $this->_chunkedData = substr($this->_chunkedData, $this->_chunkedLength);
                 $this->_chunkedLength = 0;
                 $this->handleChunkedData($connection, '');

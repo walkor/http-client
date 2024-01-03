@@ -162,7 +162,7 @@ class Client
         $request->setOptions($options)->attachConnection($connection);
 
         $client = $this;
-        $request->on('success', function($response) use ($task, $client, $request) {
+        $request->once('success', function($response) use ($task, $client, $request) {
             $client->recycleConnectionFromRequest($request, $response);
             try {
                 $new_request = Request::redirect($request, $response);
@@ -194,7 +194,7 @@ class Client
             ];
             $this->queueUnshift($address, $task);
             $this->process($address);
-        })->on('error', function($exception) use ($task, $client, $request) {
+        })->once('error', function($exception) use ($task, $client, $request) {
             $client->recycleConnectionFromRequest($request);
             if (!empty($task['options']['error'])) {
                 call_user_func($task['options']['error'], $exception);
@@ -202,6 +202,10 @@ class Client
                 throw $exception;
             }
         });
+        
+        if ($options['progress']) {
+            $request->on('progress', $options['progress']);
+        }
 
         $state = $connection->getStatus(false);
         if ($state === 'CLOSING' || $state === 'CLOSED') {
