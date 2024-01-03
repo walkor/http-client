@@ -203,7 +203,7 @@ class Client
             }
         });
         
-        if ($options['progress']) {
+        if (isset($options['progress'])) {
             $request->on('progress', $options['progress']);
         }
 
