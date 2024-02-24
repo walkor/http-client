@@ -521,7 +521,7 @@ class Request extends \Workerman\Psr7\Request
      */
     public function onUnexpectClose()
     {
-        $this->emitError(new \Exception('Connection closed'));
+        $this->emitError(new \Exception('The connection to ' . $this->_connection->getRemoteIp() . ' has been closed.'));
     }
 
     /**
