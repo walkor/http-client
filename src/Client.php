@@ -64,7 +64,7 @@ class Client
      */
     public function request($url, $options = [])
     {
-        $address = $this->parseAddress($url, $options);
+        $address = $this->parseAddress($url, $options, true);
         $options['url'] = $url;
         $needSuspend = !isset($options['success']) && class_exists(EventLoop::class, false);
         if ($needSuspend) {
@@ -248,16 +248,21 @@ class Client
      *
      * @param $url
      * @param $options
+     * @param $throwException
      * @return string
      */
-    protected function parseAddress($url, $options)
+    protected function parseAddress($url, $options, $throwException = false)
     {
         $info = parse_url($url);
         if (empty($info) || !isset($info['host'])) {
             $e = new \Exception("invalid url: $url");
+            if ($throwException) {
+                throw $e;
+            }
             if (!empty($options['error'])) {
                 call_user_func($options['error'], $e);
             }
+            return '';
         }
         $port = isset($info['port']) ? $info['port'] : (strpos($url, 'https') === 0 ? 443 : 80);
         return "tcp://{$info['host']}:{$port}";
