@@ -72,10 +72,6 @@ class Client
             $options['success'] = function ($response) use ($suspension) {
                 $suspension->resume($response);
             };
-            /**
-             * 修复携程 错误网址|超时 从而导致程序崩溃重启[会一直重启][webman.plugin\start.php terminated and try to restart]
-             * Exception: connect abc.abc.cn:443 timeout after 5 seconds in ...vendor\workerman\http-client\src\Request.php:461
-             */
             $options['error'] = function ($response) use ($suspension) {
                 $suspension->throw($response);
             };
