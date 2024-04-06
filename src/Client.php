@@ -15,6 +15,9 @@ namespace Workerman\Http;
 
 
 use Revolt\EventLoop;
+use RuntimeException;
+use Throwable;
+use Workerman\Timer;
 
 /**
  * Class Http\Client
@@ -61,23 +64,34 @@ class Client
      * @param $url string
      * @param array $options ['method'=>'get', 'data'=>x, 'success'=>callback, 'error'=>callback, 'headers'=>[..], 'version'=>1.1]
      * @return mixed|Response
+     * @throws Throwable
      */
     public function request($url, $options = [])
     {
-        $address = $this->parseAddress($url, $options, true);
         $options['url'] = $url;
         $needSuspend = !isset($options['success']) && class_exists(EventLoop::class, false);
-        if ($needSuspend) {
-            $suspension = EventLoop::getSuspension();
-            $options['success'] = function ($response) use ($suspension) {
-                $suspension->resume($response);
-            };
-            $options['error'] = function ($response) use ($suspension) {
-                $suspension->throw($response);
-            };
+        try {
+            $address = $this->parseAddress($url);
+            if ($needSuspend) {
+                $suspension = EventLoop::getSuspension();
+                $options['success'] = function ($response) use ($suspension) {
+                    $suspension->resume($response);
+                };
+                $options['error'] = function ($response) use ($suspension) {
+                    $suspension->throw($response);
+                };
+            }
+            $this->queuePush($address, ['url' => $url, 'address' => $address, 'options' => $options]);
+            $this->process($address);
+        } catch (Throwable $exception) {
+            if ($needSuspend) {
+                throw $exception;
+            }
+            if (isset($options['error'])) {
+                Timer::add(0.000001, $options['error'], [$exception], false);
+            }
+            return;
         }
-        $this->queuePush($address, ['url' => $url, 'address' => $address, 'options' => $options]);
-        $this->process($address);
         if ($needSuspend) {
             return $suspension->suspend();
         }
@@ -90,6 +104,7 @@ class Client
      * @param null $success_callback
      * @param null $error_callback
      * @return mixed|Response
+     * @throws Throwable
      */
     public function get($url, $success_callback = null, $error_callback = null)
     {
@@ -107,10 +122,11 @@ class Client
      * Post.
      *
      * @param $url
-     * @param $data
+     * @param array $data
      * @param null $success_callback
      * @param null $error_callback
      * @return mixed|Response
+     * @throws Throwable
      */
     public function post($url, $data = [], $success_callback = null, $error_callback = null)
     {
@@ -132,7 +148,9 @@ class Client
      * Process.
      * User should not call this.
      *
+     * @param $address
      * @return void
+     * @throws \Exception
      */
     public function process($address)
     {
@@ -189,7 +207,7 @@ class Client
             $uri = $new_request->getUri();
             $url = (string)$uri;
             $options = $new_request->getOptions();
-            $address = $this->parseAddress($url, $options);
+            $address = $this->parseAddress($url);
             $task = [
                 'url'      => $url,
                 'options'  => $options,
@@ -205,7 +223,7 @@ class Client
                 throw $exception;
             }
         });
-        
+
         if (isset($options['progress'])) {
             $request->on('progress', $options['progress']);
         }
@@ -250,22 +268,13 @@ class Client
      * Parse address from url.
      *
      * @param $url
-     * @param $options
-     * @param $throwException
      * @return string
      */
-    protected function parseAddress($url, $options, $throwException = false)
+    protected function parseAddress($url)
     {
         $info = parse_url($url);
         if (empty($info) || !isset($info['host'])) {
-            $e = new \Exception("invalid url: $url");
-            if ($throwException) {
-                throw $e;
-            }
-            if (!empty($options['error'])) {
-                call_user_func($options['error'], $e);
-            }
-            return '';
+            throw new RuntimeException("invalid url: $url");
         }
         $port = isset($info['port']) ? $info['port'] : (strpos($url, 'https') === 0 ? 443 : 80);
         return "tcp://{$info['host']}:{$port}";
