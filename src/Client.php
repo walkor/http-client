@@ -72,27 +72,20 @@ class Client
         $needSuspend = !isset($options['success']) && class_exists(EventLoop::class, false);
         try {
             $address = $this->parseAddress($url);
-            if ($needSuspend) {
-                $suspension = EventLoop::getSuspension();
-                $options['success'] = function ($response) use ($suspension) {
-                    $suspension->resume($response);
-                };
-                $options['error'] = function ($response) use ($suspension) {
-                    $suspension->throw($response);
-                };
-            }
-            $this->queuePush($address, ['url' => $url, 'address' => $address, 'options' => $options]);
+            $this->queuePush($address, ['url' => $url, 'address' => $address, 'options' => &$options]);
             $this->process($address);
         } catch (Throwable $exception) {
-            if ($needSuspend) {
-                throw $exception;
-            }
-            if (isset($options['error'])) {
-                Timer::add(0.000001, $options['error'], [$exception], false);
-            }
+            $this->deferError($options, $exception);
             return;
         }
         if ($needSuspend) {
+            $suspension = EventLoop::getSuspension();
+            $options['success'] = function ($response) use ($suspension) {
+                $suspension->resume($response);
+            };
+            $options['error'] = function ($response) use ($suspension) {
+                $suspension->throw($response);
+            };
             return $suspension->suspend();
         }
     }
@@ -162,6 +155,9 @@ class Client
         $url = $task['url'];
         $address = $task['address'];
         $connection = $this->_connectionPool->fetch($address, strpos($url, 'https') === 0);
+        $connection->errorHandler = function(Throwable $exception) use ($task) {
+            $this->deferError($task['options'], $exception);
+        };
 
         // No connection is in idle state then wait.
         if (!$connection) {
@@ -188,11 +184,7 @@ class Client
             try {
                 $new_request = Request::redirect($request, $response);
             } catch (\Exception $exception) {
-                if (!empty($task['options']['error'])) {
-                    call_user_func($task['options']['error'], $exception);
-                } else {
-                    throw $exception;
-                }
+                $this->deferError($task['options'], $exception);
                 return;
             }
             // No redirect.
@@ -217,11 +209,7 @@ class Client
             $this->process($address);
         })->once('error', function($exception) use ($task, $client, $request) {
             $client->recycleConnectionFromRequest($request);
-            if (!empty($task['options']['error'])) {
-                call_user_func($task['options']['error'], $exception);
-            } else {
-                throw $exception;
-            }
+            $this->deferError($task['options'], $exception);
         });
 
         if (isset($options['progress'])) {
@@ -333,6 +321,23 @@ class Client
         unset($this->_queue[$address][key($this->_queue[$address])]);
         if (empty($this->_queue[$address])) {
             unset($this->_queue[$address]);
+        }
+    }
+
+    /**
+     * @param $callback
+     * @param $exception
+     * @return void
+     */
+    protected function deferError($options, $exception)
+    {
+        if (isset($options['error'])) {
+            Timer::add(0.000001, $options['error'], [$exception], false);
+            return;
+        }
+        $needSuspend = !isset($options['success']) && class_exists(EventLoop::class, false);
+        if ($needSuspend) {
+            throw $exception;
         }
     }
 }
