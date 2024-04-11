@@ -154,7 +154,7 @@ class Client
 
         $url = $task['url'];
         $address = $task['address'];
-        $connection = $this->_connectionPool->fetch($address, strpos($url, 'https') === 0);
+        $connection = $this->_connectionPool->fetch($address, strpos($url, 'https') ===0, $task['options']['proxy'] ?? '');
         $connection->errorHandler = function(Throwable $exception) use ($task) {
             $this->deferError($task['options'], $exception);
         };

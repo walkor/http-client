@@ -194,6 +194,7 @@ class Request extends \Workerman\Psr7\Request
         if ($ssl) {
             $connection->transport = 'ssl';
         }
+        ProxyHelper::setConnectionProxy($connection, $context);
         $this->attachConnection($connection);
         $this->_selfConnection = true;
         $connection->connect();
