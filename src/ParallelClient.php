@@ -40,14 +40,20 @@ class ParallelClient extends Client
         foreach ($queues as $index => $each) {
             $suspension = $suspensionArr[$index];
             $options = $each[1];
-            $options['success'] = function ($response) use ($suspension) {
+            $options['success'] = function ($response) use ($suspension, $options) {
                 $suspension->resume($response);
+                if (!empty($options['success'])) {
+                    call_user_func($options['success'], $response);
+                }
             };
-            $options['error'] = function ($response) use ($suspension, $errorThrow) {
+            $options['error'] = function ($response) use ($suspension, $errorThrow, $options) {
                 if ($errorThrow) {
                     $suspension->throw($response);
                 } else {
                     $suspension->resume($response);
+                }
+                if (!empty($options['error'])) {
+                    call_user_func($options['error'], $response);
                 }
             };
 
