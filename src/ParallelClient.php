@@ -78,4 +78,12 @@ class ParallelClient extends Client
         return $result;
     }
 
+    #[\Override]
+    protected function deferError($options, $exception)
+    {
+        if (!empty($options['error'])) {
+            call_user_func($options['error'], $exception);
+        }
+    }
+
 }
