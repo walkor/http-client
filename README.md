@@ -97,11 +97,11 @@ $worker->onWorkerStart = function () {
     ]);
     $http->push('http://example3.com');
 
-    $result = $http->await(false);
+    $result = $http->await();
     // $result:
     // [
     //     [bool $isSuccess = true, Workerman\Http\Response $response],
-    //     [bool $isSuccess = false, Throwable $error],
+    //     [bool $isSuccess = false, Throwable|Exception $error],
     //     [bool $isSuccess, Workerman\Http\Response $response],
     // ]
 

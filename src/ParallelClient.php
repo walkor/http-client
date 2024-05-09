@@ -25,7 +25,7 @@ class ParallelClient extends Client
         $this->_buffer_queues = array_merge($this->_buffer_queues, $set);
     }
 
-    public function await(bool $errorThrow = true): array
+    public function await(bool $errorThrow = false): array
     {
         if(!class_exists(EventLoop::class, false)) {
             throw new \RuntimeException('Please install revolt/event-loop to use parallel client.');
@@ -40,20 +40,26 @@ class ParallelClient extends Client
         foreach ($queues as $index => $each) {
             $suspension = $suspensionArr[$index];
             $options = $each[1];
-            $options['success'] = function ($response) use ($suspension, $options) {
-                $suspension->resume($response);
+
+            $options['success'] = function ($response) use (&$result, &$suspension, $options, $index) {
+                $result[$index] = [true, $response];
+                $suspension->resume();
+                // custom callback
                 if (!empty($options['success'])) {
                     call_user_func($options['success'], $response);
                 }
             };
-            $options['error'] = function ($response) use ($suspension, $errorThrow, $options) {
+
+            $options['error'] = function ($exception) use (&$result, &$suspension, $errorThrow, $options, $index) {
+                $result[$index] = [false, $exception];
                 if ($errorThrow) {
-                    $suspension->throw($response);
+                    $suspension->throw($exception);
                 } else {
-                    $suspension->resume($response);
+                    $suspension->resume();
                 }
+                // custom callback
                 if (!empty($options['error'])) {
-                    call_user_func($options['error'], $response);
+                    call_user_func($options['error'], $exception);
                 }
             };
 
@@ -61,20 +67,10 @@ class ParallelClient extends Client
         }
 
         foreach ($suspensionArr as $index => $suspension) {
-            $response = $suspension->suspend();
-            switch (get_class($response)) {
-                case Response::class:
-                    $result[$index] = [true, $response];
-                    break;
-                case Throwable::class:
-                    $result[$index] = [false, $response];
-                    break;
-                default:
-                    $result[$index] = [false, null];
-                    break;
-            }
+            $suspension->suspend();
         }
 
+        ksort($result);
         return $result;
     }
 
