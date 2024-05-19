@@ -306,7 +306,6 @@ class Request extends \Workerman\Psr7\Request
         }
 
         $package = \Workerman\Psr7\str($this);
-        echo $package,"\n";
         $this->_connection->send($package);
     }
 
