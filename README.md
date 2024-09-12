@@ -9,6 +9,8 @@ Asynchronous http client for PHP based on workerman.
 
 -  Support Http proxy.
 
+-  Parallel Request. (use 'revolt/event-loop')
+
 # Installation
 `composer require workerman/http-client`
 
@@ -116,6 +118,35 @@ $worker->onWorkerStart = function(){
 Worker::runAll();
 
 ```
+
+# Parallel
+```php
+use Workerman\Worker;
+
+require_once __DIR__ . '/vendor/autoload.php';
+
+$worker = new Worker();
+$worker->onWorkerStart = function () {
+    $http = new Workerman\Http\ParallelClient();
+
+    $http->batch([
+        ['http://example.com', ['method' => 'POST', 'data' => ['key1' => 'value1', 'key2' => 'value2']]],
+        ['https://example2.com', ['method' => 'GET']],
+    ]);
+    $http->push('http://example3.com');
+
+    $result = $http->await(false);
+    // $result:
+    // [
+    //     [bool $isSuccess = true, Workerman\Http\Response $response],
+    //     [bool $isSuccess = false, Throwable $error],
+    //     [bool $isSuccess, Workerman\Http\Response $response],
+    // ]
+
+};
+Worker::runAll();
+```
+
 # License
 
 MIT

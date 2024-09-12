@@ -154,7 +154,8 @@ class Client
 
         $url = $task['url'];
         $address = $task['address'];
-        $connection = $this->_connectionPool->fetch($address, strpos($url, 'https') ===0, $task['options']['proxy'] ?? '');
+
+        $connection = $this->_connectionPool->fetch($address, strpos($url, 'https') === 0, $task['options']['proxy'] ?? '');
         $connection->errorHandler = function(Throwable $exception) use ($task) {
             $this->deferError($task['options'], $exception);
         };
@@ -164,6 +165,9 @@ class Client
             return;
         }
 
+        $connection->errorHandler = function(Throwable $exception) use ($task) {
+            $this->deferError($task['options'], $exception);
+        };
         $this->queuePop($address);
         $options = $task['options'];
         $request = new Request($url);

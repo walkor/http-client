@@ -216,7 +216,13 @@ class Request extends \Workerman\Psr7\Request
         }
 
         if (is_array($data)) {
-            $data = http_build_query($data, '', '&');
+            if (isset($data['multipart'])) {
+                $multipart = new \Workerman\Psr7\MultipartStream($data['multipart']);
+                $this->withHeader('Content-Type', 'multipart/form-data; boundary=' . $multipart->getBoundary());
+                $data = $multipart;
+            } else {
+                $data = http_build_query($data, '', '&');
+            }
         }
 
         $this->getBody()->write($data);
@@ -238,16 +244,6 @@ class Request extends \Workerman\Psr7\Request
      */
     public function end($data = '')
     {
-        if (($data || $data === '0' || $data === 0) || $this->getBody()->getSize()) {
-            if (isset($this->_options['headers'])) {
-                $headers = array_change_key_case($this->_options['headers']);
-                if (!isset($headers['content-type'])) {
-                    $this->withHeader('Content-Type', 'application/x-www-form-urlencoded');
-                }
-            } else {
-                $this->withHeader('Content-Type', 'application/x-www-form-urlencoded');
-            }
-        }
         if (isset($this->_options['version'])) {
             $this->withProtocolVersion($this->_options['version']);
         }
@@ -257,7 +253,9 @@ class Request extends \Workerman\Psr7\Request
         }
 
         if (isset($this->_options['headers'])) {
-            $this->withHeaders($this->_options['headers']);
+            foreach ($this->_options['headers'] as $key => $value) {
+                $this->withHeader($key, $value);
+            }
         }
 
         $query = isset($this->_options['query']) ? $this->_options['query'] : '';
@@ -272,6 +270,11 @@ class Request extends \Workerman\Psr7\Request
         if ($data !== '') {
             $this->write($data);
         }
+
+        if ((($data || $data === '0' || $data === 0) || $this->getBody()->getSize()) && !$this->hasHeader('Content-Type')) {
+            $this->withHeader('Content-Type', 'application/x-www-form-urlencoded');
+        }
+
         if (!$this->_connection) {
             $this->connect();
         } else {
